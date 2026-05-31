@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>パーセプトロンを体験して学ぼう</title>
+<style>
+  :root {
+    --bg: #0f1226;
+    --panel: #1a1f3a;
+    --panel-light: #242b50;
+    --accent: #5b8cff;
+    --accent2: #ff7a90;
+    --pos: #4fd1c5;
+    --neg: #ff8a5c;
+    --text: #e8ecf8;
+    --muted: #9aa3c7;
+    --ok: #5be584;
+    --line: #ffd166;
+    --border: #303867;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #1b2350 0%, var(--bg) 60%);
+    color: var(--text);
+    line-height: 1.8;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    text-align: center;
+    padding: 64px 20px 40px;
+  }
+  header h1 {
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    margin: 0 0 12px;
+    background: linear-gradient(90deg, var(--accent), var(--pos));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  header p {
+    color: var(--muted);
+    max-width: 640px;
+    margin: 0 auto;
+    font-size: 1.05rem;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: 0 20px 80px; }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 32px;
+    margin: 28px 0;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  }
+  section h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    flex: 0 0 auto;
+  }
+  p, li { color: var(--text); }
+  .muted { color: var(--muted); }
+  .hl { color: var(--line); font-weight: 700; }
+  .pos-t { color: var(--pos); font-weight: 700; }
+  .neg-t { color: var(--neg); font-weight: 700; }
+  .note {
+    background: var(--panel-light);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    font-size: 0.96rem;
+  }
+  .formula {
+    background: #0c1030;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    text-align: center;
+    font-size: 1.25rem;
+    letter-spacing: 0.5px;
+    margin: 18px 0;
+    overflow-x: auto;
+  }
+  /* ニューロン図 */
+  .neuron-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+  .node {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #fff;
+    flex: 0 0 auto;
+  }
+  .node.input { width: 64px; height: 64px; background: var(--panel-light); border: 2px solid var(--accent); }
+  .node.sum { width: 90px; height: 90px; background: linear-gradient(135deg,#2b3470,#1a2050); border: 2px solid var(--line); font-size: 1.4rem; }
+  .node.output { width: 70px; height: 70px; background: linear-gradient(135deg, var(--pos), #2ea69a); }
+  .arrow { color: var(--muted); font-size: 1.6rem; }
+  .arrow small { display:block; color: var(--accent); font-size: .7rem; }
+  .col { display:flex; flex-direction:column; gap:10px; }
+
+  /* コントロール */
+  .lab-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 760px) { .lab-grid { grid-template-columns: 1fr; } }
+  canvas {
+    background: #0c1030;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    width: 100%;
+    height: auto;
+    touch-action: none;
+  }
+  .controls { display: flex; flex-direction: column; gap: 16px; }
+  .slider-row label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 4px; }
+  .slider-row .val { color: var(--line); font-variant-numeric: tabular-nums; }
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--accent);
+    height: 6px;
+  }
+  .readout {
+    background: var(--panel-light);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .readout .big { font-size: 1.6rem; font-weight: 800; }
+  .acc-bar {
+    height: 10px; border-radius: 6px; background: #0c1030; overflow: hidden; margin-top: 6px;
+  }
+  .acc-bar > div { height: 100%; background: linear-gradient(90deg, var(--neg), var(--line), var(--ok)); transition: width .25s; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+  button {
+    background: linear-gradient(135deg, var(--accent), #4169e1);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 18px;
+    font-size: 0.98rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .08s, filter .15s;
+    font-family: inherit;
+  }
+  button:hover { filter: brightness(1.12); }
+  button:active { transform: translateY(1px); }
+  button.ghost { background: var(--panel-light); border: 1px solid var(--border); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: .9rem; margin-top: 10px; color: var(--muted); }
+  .dot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:5px; vertical-align: middle; }
+
+  /* 論理ゲート */
+  .gate-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 16px; }
+  .gate-tabs button.active { outline: 2px solid var(--line); }
+  table.truth { border-collapse: collapse; width: 100%; max-width: 320px; margin-top: 14px; }
+  table.truth th, table.truth td { border: 1px solid var(--border); padding: 8px 10px; text-align: center; font-variant-numeric: tabular-nums; }
+  table.truth th { background: var(--panel-light); }
+  .verdict { margin-top: 14px; font-weight: 700; }
+
+  footer { text-align:center; color: var(--muted); padding: 30px 20px 60px; font-size: .9rem; }
+  .toc { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top: 22px; }
+  .toc a { color: var(--accent); text-decoration:none; background: var(--panel); border:1px solid var(--border); padding:6px 14px; border-radius: 999px; font-size:.88rem; }
+  .toc a:hover { background: var(--panel-light); }
+  kbd { background:#0c1030; border:1px solid var(--border); border-radius:6px; padding:1px 7px; font-size:.85em; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>パーセプトロンを体験して学ぼう</h1>
+  <p>パーセプトロンは、ニューラルネットワーク（AIの脳）のいちばん基本となる部品です。<br>
+     スライダーを動かしたり、学習を実行したりしながら、手を動かして直感的に理解しましょう。</p>
+  <nav class="toc">
+    <a href="#what">① そもそも何？</a>
+    <a href="#how">② 仕組み</a>
+    <a href="#lab">③ 実験する</a>
+    <a href="#train">④ 学習させる</a>
+    <a href="#gate">⑤ 論理ゲート</a>
+    <a href="#math">⑥ 数式</a>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ① -->
+  <section id="what">
+    <h2><span class="step-num">1</span>パーセプトロンって、そもそも何？</h2>
+    <p>私たちの脳は <b>ニューロン（神経細胞）</b> がつながってできています。1つのニューロンは、
+       たくさんの信号を受け取り、それを合計して「強ければ発火する／弱ければ何もしない」を決めます。</p>
+    <p>この仕組みをコンピュータでまねた、いちばんシンプルなモデルが <span class="hl">パーセプトロン</span> です。
+       やっていることは、たったこれだけ：</p>
+    <div class="note">
+      📥 いくつかの<b>入力</b>を受け取る → ✖️ それぞれに<b>重み</b>をかけて足す →
+      ⚖️ 合計がしきい値を超えたら <span class="pos-t">「はい(1)」</span>、超えなければ <span class="neg-t">「いいえ(0)」</span> と答える。
+    </div>
+    <p class="muted">たとえば「傘を持っていく？」を決めるとき、<i>降水確率</i> と <i>空のくもり具合</i> を見て、
+       重要な要素を重く見て（重み）、総合点がある基準を超えたら「持っていく」と判断する——そんなイメージです。</p>
+  </section>
+
+  <!-- ② -->
+  <section id="how">
+    <h2><span class="step-num">2</span>仕組みを図で見てみよう</h2>
+    <p>入力 <b>x₁, x₂</b> に重み <b>w₁, w₂</b> をかけて足し、<b>バイアス b</b> を加えます。
+       その合計を「活性化関数（ステップ関数）」に通して、最終的な答え <b>y</b> を出します。</p>
+    <div class="neuron-diagram">
+      <div class="col">
+        <div class="node input">x₁</div>
+        <div class="node input">x₂</div>
+      </div>
+      <div class="arrow">→<small>×w</small></div>
+      <div class="node sum">Σ + b</div>
+      <div class="arrow">→<small>活性化</small></div>
+      <div class="node output">y</div>
+    </div>
+    <div class="formula">
+      合計 = w₁·x₁ + w₂·x₂ + b　→　y = (合計 ≥ 0) なら 1、そうでなければ 0
+    </div>
+    <p class="muted">重みが大きいほど、その入力を「重要」とみなします。バイアスは、全体の判断を上げ下げする“下駄”です。</p>
+  </section>
+
+  <!-- ③ -->
+  <section id="lab">
+    <h2><span class="step-num">3</span>自分で動かして実験しよう</h2>
+    <p>下のグラフには2種類の点（<span class="pos-t">●クラスA</span> と <span class="neg-t">●クラスB</span>）があります。
+       パーセプトロンの仕事は、この2つを <span class="hl">1本の直線</span> できれいに分けること。
+       スライダーで重みとバイアスを変えて、<b>黄色い直線</b>を動かしてみましょう！</p>
+    <div class="lab-grid">
+      <div>
+        <canvas id="labCanvas" width="440" height="440"></canvas>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--pos)"></span>クラスA（正解=1）</span>
+          <span><span class="dot" style="background:var(--neg)"></span>クラスB（正解=0）</span>
+          <span><span class="dot" style="background:var(--line)"></span>決定境界（直線）</span>
+        </div>
+        <p class="muted" style="font-size:.85rem; margin-top:8px;">💡 グラフ上をクリックすると点を追加できます（<kbd>Shift</kbd>+クリックでもう片方のクラス）。</p>
+      </div>
+      <div class="controls">
+        <div class="slider-row">
+          <label>重み w₁ <span class="val" id="w1v">1.00</span></label>
+          <input type="range" id="w1" min="-3" max="3" step="0.05" value="1">
+        </div>
+        <div class="slider-row">
+          <label>重み w₂ <span class="val" id="w2v">1.00</span></label>
+          <input type="range" id="w2" min="-3" max="3" step="0.05" value="1">
+        </div>
+        <div class="slider-row">
+          <label>バイアス b <span class="val" id="bv">-0.50</span></label>
+          <input type="range" id="b" min="-3" max="3" step="0.05" value="-0.5">
+        </div>
+        <div class="readout">
+          正しく分類できた割合（正解率）
+          <div class="big" id="accVal">--%</div>
+          <div class="acc-bar"><div id="accFill" style="width:0%"></div></div>
+        </div>
+        <div class="btn-row">
+          <button class="ghost" id="resetW">重みをリセット</button>
+          <button class="ghost" id="newData">点を作り直す</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ④ -->
+  <section id="train">
+    <h2><span class="step-num">4</span>パーセプトロンに「学習」させてみよう</h2>
+    <p>手で直線を合わせるのは大変ですよね。実は、パーセプトロンは <span class="hl">自分で重みを調整して</span>
+       正解に近づくことができます。これが「学習」です。</p>
+    <p class="muted">やり方はシンプル：点を1つずつ見て、<b>間違えたら</b>その点を正しく分類する方向へ重みを少しだけ動かす——これを繰り返すだけ。</p>
+    <div class="lab-grid">
+      <div>
+        <canvas id="trainCanvas" width="440" height="440"></canvas>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--pos)"></span>クラスA</span>
+          <span><span class="dot" style="background:var(--neg)"></span>クラスB</span>
+          <span><span class="dot" style="background:var(--line)"></span>学習中の境界</span>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="readout">
+          <div>学習の回数（エポック）：<b id="epoch">0</b></div>
+          <div>現在の正解率</div>
+          <div class="big" id="trainAcc">--%</div>
+          <div class="acc-bar"><div id="trainFill" style="width:0%"></div></div>
+        </div>
+        <div class="slider-row">
+          <label>学習スピード <span class="val" id="lrv">0.10</span></label>
+          <input type="range" id="lr" min="0.01" max="0.5" step="0.01" value="0.1">
+        </div>
+        <div class="btn-row">
+          <button id="autoTrain">▶ 自動で学習</button>
+          <button class="ghost" id="stepTrain">1ステップ</button>
+          <button class="ghost" id="resetTrain">リセット</button>
+        </div>
+        <p class="muted" style="font-size:.88rem;">「自動で学習」を押すと、直線がひとりでに動いて2クラスを分けていく様子が見られます。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑤ -->
+  <section id="gate">
+    <h2><span class="step-num">5</span>論理ゲートで限界を知ろう</h2>
+    <p>パーセプトロンは AND（かつ）や OR（または）のような論理演算を学習できます。
+       でも <span class="neg-t">XOR（排他的論理和）</span> だけはどうしても解けません。なぜでしょう？</p>
+    <div class="gate-tabs">
+      <button data-gate="AND" class="active">AND（かつ）</button>
+      <button data-gate="OR">OR（または）</button>
+      <button data-gate="XOR">XOR（排他的論理和）</button>
+    </div>
+    <div class="lab-grid">
+      <div>
+        <canvas id="gateCanvas" width="440" height="440"></canvas>
+      </div>
+      <div class="controls">
+        <table class="truth">
+          <thead><tr><th>x₁</th><th>x₂</th><th>正解</th></tr></thead>
+          <tbody id="truthBody"></tbody>
+        </table>
+        <button id="gateTrain">▶ このゲートを学習させる</button>
+        <div class="verdict" id="gateVerdict"></div>
+        <p class="muted" style="font-size:.9rem;">
+          AND と OR は、●と●を <b>1本の直線</b>で分けられます（＝線形分離可能）。
+          一方 XOR は、対角どうしが同じクラスなので、どんな直線を引いても分けられません。
+          これが「1層のパーセプトロンの限界」で、層を重ねた <b>多層パーセプトロン</b> が生まれたきっかけです。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑥ -->
+  <section id="math">
+    <h2><span class="step-num">6</span>数式でおさらい</h2>
+    <p>ここまでの内容を、改めて式で確認します。難しく見えますが、やっていることは「重み付きの足し算」と「比較」だけです。</p>
+    <div class="formula">u = w₁x₁ + w₂x₂ + b</div>
+    <p class="muted">u は「重み付き和（加重和）」。各入力に重みをかけて、バイアスを足したものです。</p>
+    <div class="formula">y = step(u) = &nbsp; 1 &nbsp;(u ≥ 0 のとき) ,&nbsp;&nbsp; 0 &nbsp;(u &lt; 0 のとき)</div>
+    <p class="muted">step は活性化関数。ある基準（0）を境に、出力を 0 か 1 にパキッと切り替えます。</p>
+    <p>そして学習則（重みの更新）はこうです。<span class="hl">正解</span>を t、<span class="hl">予測</span>を y、<span class="hl">学習率</span>を η とすると：</p>
+    <div class="formula">wᵢ ← wᵢ + η (t − y) xᵢ &nbsp;,&nbsp;&nbsp; b ← b + η (t − y)</div>
+    <p class="muted">
+      予測が当たっていれば (t − y) = 0 なので何も変わりません。外れたときだけ、
+      正解に近づく方向へ重みを少し動かす——セクション④でやっていたのは、まさにこの計算です。
+    </p>
+    <div class="note">
+      🎓 <b>まとめ</b>：パーセプトロンは「入力に重みをかけて足し、しきい値で0/1を出す」だけのシンプルな仕組み。
+      間違えるたびに重みを少しずつ直すことで、データを分ける直線を自分で見つけます。
+      この小さな部品を何層も重ねたものが、今のディープラーニングの土台になっています。
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  パーセプトロン学習用ページ ｜ スライダーやボタンを自由に触って試してみてください 🚀
+</footer>
+
+<script>
+"use strict";
+
+/* ===== 共通ユーティリティ ===== */
+// データ座標 [-1,1]x[-1,1] を canvas ピクセルへ変換
+function makeMapper(canvas) {
+  const W = canvas.width, H = canvas.height, pad = 24;
+  const toPx = (x, y) => [pad + (x + 1) / 2 * (W - 2 * pad),
+                          H - pad - (y + 1) / 2 * (H - 2 * pad)];
+  const toData = (px, py) => [(px - pad) / (W - 2 * pad) * 2 - 1,
+                              -((py - (H - pad)) / (H - 2 * pad) * 2 - 1)];
+  return { W, H, pad, toPx, toData };
+}
+
+function drawGrid(ctx, m) {
+  ctx.clearRect(0, 0, m.W, m.H);
+  ctx.strokeStyle = "#1b2150";
+  ctx.lineWidth = 1;
+  for (let i = -1; i <= 1; i += 0.5) {
+    const [x1, y1] = m.toPx(i, -1), [x2, y2] = m.toPx(i, 1);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    const [x3, y3] = m.toPx(-1, i), [x4, y4] = m.toPx(1, i);
+    ctx.beginPath(); ctx.moveTo(x3, y3); ctx.lineTo(x4, y4); ctx.stroke();
+  }
+  // 軸
+  ctx.strokeStyle = "#39427e";
+  const [ax1, ay1] = m.toPx(-1, 0), [ax2, ay2] = m.toPx(1, 0);
+  ctx.beginPath(); ctx.moveTo(ax1, ay1); ctx.lineTo(ax2, ay2); ctx.stroke();
+  const [bx1, by1] = m.toPx(0, -1), [bx2, by2] = m.toPx(0, 1);
+  ctx.beginPath(); ctx.moveTo(bx1, by1); ctx.lineTo(bx2, by2); ctx.stroke();
+}
+
+// 決定境界 w1*x + w2*y + b = 0 を塗り分け＋直線で描画
+function drawBoundary(ctx, m, w1, w2, b) {
+  // 領域の塗り分け（薄く）
+  const step = 8;
+  for (let px = m.pad; px < m.W - m.pad; px += step) {
+    for (let py = m.pad; py < m.H - m.pad; py += step) {
+      const [dx, dy] = m.toData(px, py);
+      const u = w1 * dx + w2 * dy + b;
+      ctx.fillStyle = u >= 0 ? "rgba(79,209,197,0.10)" : "rgba(255,138,92,0.10)";
+      ctx.fillRect(px, py, step, step);
+    }
+  }
+  // 直線
+  ctx.strokeStyle = "#ffd166";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  let pts = [];
+  // 各辺との交点を求める
+  if (Math.abs(w2) > 1e-6) {
+    pts.push([-1, -(w1 * -1 + b) / w2]);
+    pts.push([1, -(w1 * 1 + b) / w2]);
+  }
+  if (Math.abs(w1) > 1e-6) {
+    pts.push([-(w2 * -1 + b) / w1, -1]);
+    pts.push([-(w2 * 1 + b) / w1, 1]);
+  }
+  pts = pts.filter(p => p[0] >= -1.0001 && p[0] <= 1.0001 && p[1] >= -1.0001 && p[1] <= 1.0001);
+  if (pts.length >= 2) {
+    const [sx, sy] = m.toPx(pts[0][0], pts[0][1]);
+    const [ex, ey] = m.toPx(pts[1][0], pts[1][1]);
+    ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+  }
+}
+
+function drawPoints(ctx, m, pts, w1, w2, b, showWrong) {
+  for (const p of pts) {
+    const [px, py] = m.toPx(p.x, p.y);
+    const pred = (w1 * p.x + w2 * p.y + b) >= 0 ? 1 : 0;
+    const correct = pred === p.label;
+    ctx.beginPath();
+    ctx.arc(px, py, 8, 0, Math.PI * 2);
+    ctx.fillStyle = p.label === 1 ? "#4fd1c5" : "#ff8a5c";
+    ctx.fill();
+    // 間違って分類された点は赤枠で強調
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = (showWrong && !correct) ? "#ff3b5c" : "rgba(255,255,255,0.55)";
+    ctx.stroke();
+  }
+}
+
+function accuracy(pts, w1, w2, b) {
+  if (!pts.length) return 0;
+  let ok = 0;
+  for (const p of pts) {
+    const pred = (w1 * p.x + w2 * p.y + b) >= 0 ? 1 : 0;
+    if (pred === p.label) ok++;
+  }
+  return ok / pts.length;
+}
+
+// 線形分離しやすい2クラスのランダムデータを生成
+function genData(n = 14) {
+  const pts = [];
+  // 隠れた“真の直線”を決める
+  const tw1 = (Math.random() * 2 - 1) || 0.5;
+  const tw2 = (Math.random() * 2 - 1) || 0.5;
+  const tb = (Math.random() * 0.8 - 0.4);
+  let guard = 0;
+  while (pts.length < n && guard < 2000) {
+    guard++;
+    const x = Math.random() * 1.7 - 0.85;
+    const y = Math.random() * 1.7 - 0.85;
+    const u = tw1 * x + tw2 * y + tb;
+    if (Math.abs(u) < 0.18) continue; // 境界付近は避けて分かりやすく
+    pts.push({ x, y, label: u >= 0 ? 1 : 0 });
+  }
+  return pts;
+}
+
+/* ===== ③ 実験ラボ ===== */
+(function () {
+  const canvas = document.getElementById("labCanvas");
+  const ctx = canvas.getContext("2d");
+  const m = makeMapper(canvas);
+  let pts = genData();
+  const w1El = document.getElementById("w1"), w2El = document.getElementById("w2"), bEl = document.getElementById("b");
+
+  function render() {
+    const w1 = +w1El.value, w2 = +w2El.value, b = +bEl.value;
+    document.getElementById("w1v").textContent = w1.toFixed(2);
+    document.getElementById("w2v").textContent = w2.toFixed(2);
+    document.getElementById("bv").textContent = b.toFixed(2);
+    drawGrid(ctx, m);
+    drawBoundary(ctx, m, w1, w2, b);
+    drawPoints(ctx, m, pts, w1, w2, b, true);
+    const acc = accuracy(pts, w1, w2, b);
+    document.getElementById("accVal").textContent = Math.round(acc * 100) + "%";
+    document.getElementById("accFill").style.width = (acc * 100) + "%";
+  }
+  [w1El, w2El, bEl].forEach(el => el.addEventListener("input", render));
+  document.getElementById("resetW").addEventListener("click", () => {
+    w1El.value = 1; w2El.value = 1; bEl.value = -0.5; render();
+  });
+  document.getElementById("newData").addEventListener("click", () => { pts = genData(); render(); });
+
+  canvas.addEventListener("click", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const py = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const [dx, dy] = m.toData(px, py);
+    if (dx < -1 || dx > 1 || dy < -1 || dy > 1) return;
+    pts.push({ x: dx, y: dy, label: e.shiftKey ? 0 : 1 });
+    render();
+  });
+
+  render();
+})();
+
+/* ===== ④ 学習デモ ===== */
+(function () {
+  const canvas = document.getElementById("trainCanvas");
+  const ctx = canvas.getContext("2d");
+  const m = makeMapper(canvas);
+  let pts = genData();
+  let w1 = 0.1, w2 = -0.1, b = 0;
+  let epoch = 0, idx = 0, timer = null;
+  const lrEl = document.getElementById("lr");
+
+  function render() {
+    drawGrid(ctx, m);
+    drawBoundary(ctx, m, w1, w2, b);
+    drawPoints(ctx, m, pts, w1, w2, b, true);
+    const acc = accuracy(pts, w1, w2, b);
+    document.getElementById("epoch").textContent = epoch;
+    document.getElementById("trainAcc").textContent = Math.round(acc * 100) + "%";
+    document.getElementById("trainFill").style.width = (acc * 100) + "%";
+    document.getElementById("lrv").textContent = (+lrEl.value).toFixed(2);
+    return acc;
+  }
+
+  // 1点について重みを更新（パーセプトロン学習則）
+  function oneStep() {
+    const lr = +lrEl.value;
+    const p = pts[idx];
+    const pred = (w1 * p.x + w2 * p.y + b) >= 0 ? 1 : 0;
+    const err = p.label - pred;
+    w1 += lr * err * p.x;
+    w2 += lr * err * p.y;
+    b  += lr * err;
+    idx++;
+    if (idx >= pts.length) { idx = 0; epoch++; }
+  }
+
+  function reset() {
+    stop();
+    w1 = 0.1; w2 = -0.1; b = 0; epoch = 0; idx = 0;
+    pts = genData();
+    render();
+  }
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    document.getElementById("autoTrain").textContent = "▶ 自動で学習";
+  }
+
+  document.getElementById("stepTrain").addEventListener("click", () => { oneStep(); render(); });
+  document.getElementById("resetTrain").addEventListener("click", reset);
+  lrEl.addEventListener("input", render);
+  document.getElementById("autoTrain").addEventListener("click", function () {
+    if (timer) { stop(); return; }
+    this.textContent = "⏸ 一時停止";
+    timer = setInterval(() => {
+      oneStep();
+      const acc = render();
+      if (acc >= 1 && epoch > 0) { stop(); }   // 全部分類できたら停止
+      if (epoch > 60) { stop(); }              // 収束しない場合の保険
+    }, 120);
+  });
+
+  render();
+})();
+
+/* ===== ⑤ 論理ゲート ===== */
+(function () {
+  const canvas = document.getElementById("gateCanvas");
+  const ctx = canvas.getContext("2d");
+  const m = makeMapper(canvas);
+
+  // 入力 0/1 を [-0.6, 0.6] にマップして表示
+  const map01 = v => v === 1 ? 0.6 : -0.6;
+  const gates = {
+    AND: [[0,0,0],[0,1,0],[1,0,0],[1,1,1]],
+    OR:  [[0,0,0],[0,1,1],[1,0,1],[1,1,1]],
+    XOR: [[0,0,0],[0,1,1],[1,0,1],[1,1,0]],
+  };
+  let current = "AND";
+  let w1 = 0.2, w2 = -0.2, b = 0;
+
+  function pts() {
+    return gates[current].map(r => ({ x: map01(r[0]), y: map01(r[1]), label: r[2] }));
+  }
+
+  function fillTruth() {
+    const body = document.getElementById("truthBody");
+    body.innerHTML = "";
+    for (const r of gates[current]) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td>`;
+      body.appendChild(tr);
+    }
+  }
+
+  function render() {
+    drawGrid(ctx, m);
+    drawBoundary(ctx, m, w1, w2, b);
+    drawPoints(ctx, m, pts(), w1, w2, b, true);
+  }
+
+  function trainGate() {
+    // パーセプトロンを多数回まわして収束を試みる
+    w1 = Math.random() * 0.4 - 0.2; w2 = Math.random() * 0.4 - 0.2; b = 0;
+    const data = pts();
+    const lr = 0.1;
+    for (let ep = 0; ep < 80; ep++) {
+      for (const p of data) {
+        const pred = (w1 * p.x + w2 * p.y + b) >= 0 ? 1 : 0;
+        const err = p.label - pred;
+        w1 += lr * err * p.x; w2 += lr * err * p.y; b += lr * err;
+      }
+    }
+    render();
+    const acc = accuracy(data, w1, w2, b);
+    const v = document.getElementById("gateVerdict");
+    if (acc >= 1) {
+      v.innerHTML = `<span class="pos-t">✅ 学習成功！</span> ${current} は1本の直線できれいに分けられました（線形分離可能）。`;
+    } else {
+      v.innerHTML = `<span class="neg-t">❌ 学習失敗…</span> ${current} は正解率 ${Math.round(acc*100)}% で止まりました。どんな直線でも分けられません（線形分離不可能）。`;
+    }
+  }
+
+  document.querySelectorAll(".gate-tabs button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".gate-tabs button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      current = btn.dataset.gate;
+      w1 = 0.2; w2 = -0.2; b = 0;
+      fillTruth();
+      render();
+      document.getElementById("gateVerdict").innerHTML = "「▶ このゲートを学習させる」を押してみよう。";
+    });
+  });
+  document.getElementById("gateTrain").addEventListener("click", trainGate);
+
+  fillTruth();
+  render();
+  document.getElementById("gateVerdict").innerHTML = "「▶ このゲートを学習させる」を押してみよう。";
+})();
+</script>
+</body>
+</html>
