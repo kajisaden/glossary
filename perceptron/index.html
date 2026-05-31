@@ -2,7 +2,13 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f1226">
+<meta name="description" content="初心者がパーセプトロンを手を動かしながら直感的に学べる、スマホ対応のインタラクティブ学習ページ。">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="パーセプトロン">
 <title>パーセプトロンを体験して学ぼう</title>
 <style>
   :root {
@@ -28,6 +34,8 @@
     color: var(--text);
     line-height: 1.8;
     -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
   header {
     text-align: center;
@@ -191,6 +199,31 @@
   .toc a { color: var(--accent); text-decoration:none; background: var(--panel); border:1px solid var(--border); padding:6px 14px; border-radius: 999px; font-size:.88rem; }
   .toc a:hover { background: var(--panel-light); }
   kbd { background:#0c1030; border:1px solid var(--border); border-radius:6px; padding:1px 7px; font-size:.85em; }
+
+  /* スマホ向け調整 */
+  @media (max-width: 600px) {
+    header { padding: 36px 16px 22px; }
+    header p { font-size: .98rem; }
+    main { padding: 0 12px 60px; }
+    section { padding: 20px 16px; border-radius: 14px; margin: 18px 0; }
+    section h2 { font-size: 1.22rem; gap: 9px; }
+    .step-num { width: 32px; height: 32px; font-size: 1rem; }
+    .formula { font-size: 1rem; padding: 12px 14px; }
+    .lab-grid { gap: 16px; }
+    .node.input { width: 52px; height: 52px; }
+    .node.sum { width: 74px; height: 74px; font-size: 1.15rem; }
+    .node.output { width: 58px; height: 58px; }
+    /* タップ操作しやすく：ボタンとスライダーを大きめに */
+    button { padding: 13px 18px; font-size: 1rem; }
+    .btn-row { gap: 8px; }
+    .btn-row button { flex: 1 1 auto; }
+    input[type=range] { height: 26px; }
+    .toc a { font-size: .82rem; padding: 7px 13px; }
+  }
+  /* タッチ端末ではスライダーのつまみを大きく */
+  @media (pointer: coarse) {
+    input[type=range] { height: 28px; }
+  }
 </style>
 </head>
 <body>
