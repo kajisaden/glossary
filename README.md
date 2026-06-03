@@ -19,6 +19,7 @@ GitHub Pages を有効化すると、以下のURLで公開されます。
 ## コンテンツ
 
 - [`perceptron/`](perceptron/) — 初心者がパーセプトロンを体験して学べるインタラクティブなページ（スマホ対応）
+- [`superpowers/`](superpowers/) — obra/superpowers の14スキルを用語ゼロから読み解く概念ガイド（スマホ対応の解説ページ）
 - [`fe_vocab_mobile_viewer/`](fe_vocab_mobile_viewer/) — FE頻出英語の単語帳ビューア
 
 ## ローカルで開く
